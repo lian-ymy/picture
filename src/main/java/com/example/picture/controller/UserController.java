@@ -1,8 +1,6 @@
 package com.example.picture.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
 import com.example.picture.annotation.AuthCheck;
 import com.example.picture.common.BaseResponse;
 import com.example.picture.common.DeleteRequest;

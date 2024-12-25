@@ -15,7 +15,7 @@ public class UploadPictureResult {
     /**
      * 图片名称
      */
-    private String name;
+    private String picName;
 
     /**
      * 图片大小

@@ -8,34 +8,37 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.picture.PictureApplication;
-import com.example.picture.constant.UserConstant;
 import com.example.picture.exception.BussinessException;
 import com.example.picture.exception.ErrorCode;
 import com.example.picture.exception.ThrowUtils;
-import com.example.picture.manager.FileManager;
+import com.example.picture.manager.upload.FilePictureUpload;
+import com.example.picture.manager.upload.PictureUploadTemplate;
+import com.example.picture.manager.upload.UrlPictureUpload;
 import com.example.picture.mapper.PictureMapper;
 import com.example.picture.model.Picture;
 import com.example.picture.model.User;
 import com.example.picture.model.dto.file.UploadPictureResult;
 import com.example.picture.model.dto.picture.PictureQueryRequest;
 import com.example.picture.model.dto.picture.PictureReviewRequest;
+import com.example.picture.model.dto.picture.PictureUploadByBatchRequest;
 import com.example.picture.model.dto.picture.PictureUploadRequest;
 import com.example.picture.model.enums.PictureReviewStatusEnum;
 import com.example.picture.model.vo.picture.PictureVO;
 import com.example.picture.model.vo.user.UserVO;
 import com.example.picture.service.PictureService;
 import com.example.picture.service.UserService;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.io.IOException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -47,19 +50,27 @@ import java.util.stream.Collectors;
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
-    private final FileManager fileManager;
+    @Resource
+    private final FilePictureUpload filePictureUpload;
+
+    @Resource
+    private final UrlPictureUpload urlPictureUpload;
+
+    private PictureUploadTemplate pictureUploadTemplate;
 
     @Resource
     private UserService userService;
     @Autowired
     private PictureApplication pictureApplication;
 
-    public PictureServiceImpl(FileManager fileManager) {
-        this.fileManager = fileManager;
+    public PictureServiceImpl(FilePictureUpload filePictureUpload, UrlPictureUpload urlPictureUpload) {
+        this.filePictureUpload = filePictureUpload;
+        this.urlPictureUpload = urlPictureUpload;
     }
 
     @Override
-    public PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser) {
+    public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
+        ThrowUtils.throwIf(inputSource == null, ErrorCode.PARAMS_ERROR, "文件不能为空");
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTHOR, "用户未登录");
         //判断是新增图片还是更新图片
         Long pictureId = null;
@@ -70,17 +81,30 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         if (pictureId != null) {
             Picture oldPicture = this.getById(pictureId);
             ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
-            if(loginUser.getId() != oldPicture.getUserId() || !userService.isAdmin(loginUser)) {
+            if(!Objects.equals(loginUser.getId(), oldPicture.getUserId()) && !userService.isAdmin(loginUser)) {
                 throw new BussinessException(ErrorCode.NO_AUTHOR, "无权限");
             }
         }
         //上传图片，得到信息
         String uploadPathPrefix = String.format("public/%s", loginUser.getId());
-        UploadPictureResult uploadPictureResult = fileManager.uploadPicture(multipartFile, uploadPathPrefix);
+        //使用模板方法模式进行改造
+        if(inputSource instanceof String) {
+            //如果是url
+            pictureUploadTemplate = urlPictureUpload;
+        } else {
+            pictureUploadTemplate = filePictureUpload;
+        }
+        UploadPictureResult uploadPictureResult = pictureUploadTemplate.uploadPicture(inputSource, uploadPathPrefix);
         //构造要入库的信息到数据库中
         Picture picture = new Picture();
         BeanUtils.copyProperties(pictureUploadRequest, picture);
         picture.setUserId(loginUser.getId());
+        picture.setUrl(pictureUploadRequest.getFileUrl());
+        String picName = uploadPictureResult.getPicName();
+        if(pictureUploadRequest != null && StrUtil.isNotBlank(pictureUploadRequest.getPicName())) {
+            picName =  pictureUploadRequest.getPicName();
+        }
+        picture.setName(picName);
         //如果图片id不为空，表示更新，否则为新增
         if(pictureId != null) {
             picture.setId(pictureId);
@@ -236,6 +260,61 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         } else {
             picture.setReviewStatus(PictureReviewStatusEnum.REVIEWING.getValue());
         }
+    }
+
+    @Override
+    public Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+        String searchText = pictureUploadByBatchRequest.getSearchText();
+        String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
+        //如果没有指定名称前缀，则使用搜索词
+        if(StrUtil.isBlank(namePrefix)) {
+            namePrefix = searchText;
+        }
+        //格式化数量
+        Integer count = pictureUploadByBatchRequest.getCount();
+        ThrowUtils.throwIf(count == null || count <= 0, ErrorCode.PARAMS_ERROR, "数量错误");
+        ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "数量不能超过30条");
+        //要抓取的图片地址
+        String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
+        Document document;
+        try {
+            document = Jsoup.connect(fetchUrl).get();
+        } catch (IOException e) {
+            log.error("抓取图片失败");
+            throw new BussinessException(ErrorCode.SYSTEM_ERROR, "抓取图片失败");
+        }
+        Element div = document.getElementsByClass("dgControl").first();
+        if(ObjUtil.isNull(div)) {
+            throw new BussinessException(ErrorCode.OPERATION_ERROR, "获取图片元素失败");
+        }
+        Elements imgElementList = div.select("img.mimg");
+        int uploadCount = 0;
+        for (Element imgElement : imgElementList) {
+            String fileUrl = imgElement.attr("src");
+            if(StrUtil.isBlank(fileUrl)) {
+                continue;
+            }
+            //处理图片上传地址，防止出现转义问题
+            int questionMarkIndex = fileUrl.indexOf("?");
+            if(questionMarkIndex > -1) {
+                fileUrl = fileUrl.substring(0, questionMarkIndex);
+            }
+            //上传图片
+            PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+            pictureUploadRequest.setPicName(namePrefix + "_" + (uploadCount+1));
+            pictureUploadRequest.setFileUrl(fileUrl);
+            try {
+                this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+                uploadCount++;
+            } catch (Exception e) {
+                log.error("上传图片失败", e);
+                continue;
+            }
+            if(uploadCount >= count) {
+                break;
+            }
+        }
+        return uploadCount;
     }
 
 

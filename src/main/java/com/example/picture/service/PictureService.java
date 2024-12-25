@@ -8,9 +8,9 @@ import com.example.picture.model.Picture;
 import com.example.picture.model.User;
 import com.example.picture.model.dto.picture.PictureQueryRequest;
 import com.example.picture.model.dto.picture.PictureReviewRequest;
+import com.example.picture.model.dto.picture.PictureUploadByBatchRequest;
 import com.example.picture.model.dto.picture.PictureUploadRequest;
 import com.example.picture.model.vo.picture.PictureVO;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -23,12 +23,12 @@ public interface PictureService extends IService<Picture> {
 
     /**
      * 上传图片
-     * @param multipartFile
+     * @param inputSource
      * @param pictureUploadRequest
      * @param loginUser
      * @return
      */
-    PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest,
+    PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest,
                             User loginUser);
 
 
@@ -74,5 +74,13 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      */
     void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 批量上传图片
+     * @param pictureUploadByBatchRequest
+     * @param loginUser
+     * @return
+     */
+    Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser);
 
 }

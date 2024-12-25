@@ -2,7 +2,6 @@ package com.example.picture.controller;
 
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
 import com.example.picture.annotation.AuthCheck;
 import com.example.picture.common.BaseResponse;
 import com.example.picture.common.DeleteRequest;
@@ -14,15 +13,11 @@ import com.example.picture.exception.ThrowUtils;
 import com.example.picture.model.Picture;
 import com.example.picture.model.PictureTagCategory;
 import com.example.picture.model.User;
-import com.example.picture.model.dto.picture.PictureQueryRequest;
-import com.example.picture.model.dto.picture.PictureReviewRequest;
-import com.example.picture.model.dto.picture.PictureUpdateRequest;
-import com.example.picture.model.dto.picture.PictureUploadRequest;
+import com.example.picture.model.dto.picture.*;
 import com.example.picture.model.enums.PictureReviewStatusEnum;
 import com.example.picture.model.vo.picture.PictureVO;
 import com.example.picture.service.PictureService;
 import com.example.picture.service.UserService;
-import com.fasterxml.jackson.databind.ser.Serializers;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -221,5 +216,22 @@ public class PictureController {
         ThrowUtils.throwIf(pictureReviewRequest == null, ErrorCode.PARAMS_ERROR, "请求参数为空");
         pictureService.doPictureReview(pictureReviewRequest, userService.getLoginUser(request));
         return ResultUtils.success(true);
+    }
+
+    @PostMapping("/upload/url")
+    public BaseResponse<PictureVO> uploadPictureByUrl(@RequestBody PictureUploadRequest pictureUploadRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        String fileUrl = pictureUploadRequest.getFileUrl();
+        PictureVO pictureVO = pictureService.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+        return ResultUtils.success(pictureVO);
+    }
+
+    @PostMapping("/upload/batch")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Integer> uploadPictureByBatch(@RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureUploadByBatchRequest == null, ErrorCode.PARAMS_ERROR, "请求参数为空");
+        User loginUser = userService.getLoginUser(request);
+        Integer count = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
+        return ResultUtils.success(count);
     }
 }

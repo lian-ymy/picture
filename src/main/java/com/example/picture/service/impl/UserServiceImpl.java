@@ -56,7 +56,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (userAccount.length() < 4) {
             throw new BussinessException(ErrorCode.PARAMS_ERROR, "用户名长度小于三位！");
         }
-        if (userPassword.length() < 8 || checkPassword.length() < 8) {
+        if (userPassword.length() < 6 || checkPassword.length() < 6) {
             throw new BussinessException(ErrorCode.PARAMS_ERROR, "密码长度小于八位");
         }
 //判断账户是否包含特殊字符，如果包含特殊字符就抛出异常
@@ -100,7 +100,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (userAccount.length() < 4) {
             throw new BussinessException(ErrorCode.PARAMS_ERROR, "用户名长度小于三位！");
         }
-        if (userPassword.length() < 8) {
+        if (userPassword.length() < 6) {
             throw new BussinessException(ErrorCode.PARAMS_ERROR, "密码长度小于八位");
         }
 //判断账户是否包含特殊字符，如果包含特殊字符就抛出异常

@@ -2,7 +2,6 @@ package com.example.picture.model.enums;
 
 import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
-import org.apache.http.conn.util.PublicSuffixList;
 
 /**
  * @author <a href="https://github.com/lian-ymy">lian</a>

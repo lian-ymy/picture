@@ -1,7 +1,7 @@
 package com.example.picture.mapper;
 
-import com.example.picture.model.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.example.picture.model.User;
 
 /**
 * @author lian
