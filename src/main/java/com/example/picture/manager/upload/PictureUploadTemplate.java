@@ -1,5 +1,6 @@
 package com.example.picture.manager.upload;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.NumberUtil;
@@ -8,13 +9,16 @@ import com.example.picture.config.CosClientConfig;
 import com.example.picture.manager.CosManager;
 import com.example.picture.model.dto.file.UploadPictureResult;
 import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
+import com.qcloud.cos.model.ciModel.persistence.ProcessResults;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 使用模板方法模式优化图片上传部分的代码框架
@@ -53,8 +57,17 @@ public abstract class PictureUploadTemplate {
             //4、上传文件到对象存储
             PutObjectResult putObjectResult = cosManager.putPictureRequest(uploadPath, file);
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
-
-            //5、封装返回结果
+            ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
+            List<CIObject> objectList = processResults.getObjectList();
+            if(CollUtil.isNotEmpty(objectList)) {
+                //获取压缩图对象
+                CIObject compressedCiObject = objectList.get(0);
+                //获取缩略图对象
+                CIObject thumbnailCiObject = objectList.get(1);
+                //封装压缩图返回结果
+                return buildResult(originalFilename, compressedCiObject, thumbnailCiObject);
+            }
+            //5、封装原图返回结果
             return buildResult(originalFilename, file, uploadPath, imageInfo)   ;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -62,7 +75,6 @@ public abstract class PictureUploadTemplate {
             deleteTempFile(file);
         }
     }
-
 
     /**
      * 处理文件来源，是否是文件，是否是url
@@ -101,6 +113,27 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setPirFormat(imageInfo.getFormat());
         return uploadPictureResult;
     }
+
+    protected UploadPictureResult buildResult(String originalFilename, CIObject compressCiObject, CIObject thumbnailCiObject) {
+        //封装返回结果
+        UploadPictureResult uploadPictureResult = new UploadPictureResult();
+
+        int picWidth = compressCiObject.getWidth();
+        int picHeight = compressCiObject.getHeight();
+        double picScale = NumberUtil.round(picWidth*1.0/picHeight, 2).doubleValue();
+        uploadPictureResult.setPicName(FileUtil.mainName(originalFilename));
+        uploadPictureResult.setPicSize(compressCiObject.getSize().longValue());
+        uploadPictureResult.setPicWidth(picWidth);
+        uploadPictureResult.setPicHeight(picHeight);
+        uploadPictureResult.setPicScale(picScale);
+        uploadPictureResult.setPirFormat(compressCiObject.getFormat());
+        //将图片地址设置为压缩过后的对应地址
+        uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressCiObject.getKey());
+        //将缩略图地址设置为缩略图地址
+        uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailCiObject.getKey());
+        return uploadPictureResult;
+    }
+
 
     /**
      * 删除临时文件

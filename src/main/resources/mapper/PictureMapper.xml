@@ -22,6 +22,11 @@
             <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
             <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
             <result property="isPublic" column="isPublic" jdbcType="TINYINT"/>
+            <result property="reviewStatus" column="reviewStatus" jdbcType="INTEGER"/>
+            <result property="reviewTime" column="reviewTime" jdbcType="TIMESTAMP"/>
+            <result property="reviewUserId" column="reviewUserId" jdbcType="BIGINT"/>
+            <result property="reviewMessage" column="reviewMessage" jdbcType="VARCHAR"/>
+            <result property="thumbnailUrl" column="thumbnailUrl" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
@@ -30,6 +35,8 @@
         tags,picSize,picWidth,
         picHeight,picScale,pirFormat,
         editTime,createTime,updateTime,
-        isDelete,isPublic
+        isDelete,isPublic,reviewStatus,
+        reviewTime,reviewUserId,reviewMessage,
+        thumbnailUrl
     </sql>
 </mapper>

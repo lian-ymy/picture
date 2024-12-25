@@ -1,6 +1,5 @@
 package com.example.picture.service;
 
-
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -15,12 +14,11 @@ import com.example.picture.model.vo.picture.PictureVO;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * @author lian
- * @description 针对表【picture(图片)】的数据库操作Service
- * @createDate 2024-12-13 11:19:21
- */
+* @author lian
+* @description 针对表【picture(图片)】的数据库操作Service
+* @createDate 2024-12-25 11:40:21
+*/
 public interface PictureService extends IService<Picture> {
-
     /**
      * 上传图片
      * @param inputSource
@@ -83,4 +81,9 @@ public interface PictureService extends IService<Picture> {
      */
     Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser);
 
+    /**
+     * 清理图片文件
+     * @param deletePicture
+     */
+    void clearPictureFile(Picture deletePicture);
 }

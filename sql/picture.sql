@@ -7,7 +7,7 @@ create table picture
     userId       bigint                              null comment '关联的用户id',
     name         varchar(256)                        null comment '图片名称',
     introduction  varchar(512)                        null comment '图片描述',
-    category     int       default 0                 null comment '图片分类',
+    category     int                                 null comment '图片分类',
     tags         varchar(256)                        null comment '图片标签',
     picSize      bigint                              null comment '图片大小',
     picWidth     int       default 0                 null comment '图片宽度',
