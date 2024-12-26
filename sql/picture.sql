@@ -36,3 +36,8 @@ alter table picture
 
 -- 创建基于reviewStatus的索引
 create index idx_reviewStatus on picture(reviewStatus);
+
+alter table picture
+    add column spaceId bigint null comment "空间id(为空表示公共空间)";
+
+create index idx_spaceId on picture(spaceId);

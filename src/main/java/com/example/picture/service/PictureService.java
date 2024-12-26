@@ -5,10 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.picture.model.Picture;
 import com.example.picture.model.User;
-import com.example.picture.model.dto.picture.PictureQueryRequest;
-import com.example.picture.model.dto.picture.PictureReviewRequest;
-import com.example.picture.model.dto.picture.PictureUploadByBatchRequest;
-import com.example.picture.model.dto.picture.PictureUploadRequest;
+import com.example.picture.model.dto.picture.*;
 import com.example.picture.model.vo.picture.PictureVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -86,4 +83,25 @@ public interface PictureService extends IService<Picture> {
      * @param deletePicture
      */
     void clearPictureFile(Picture deletePicture);
+
+    /**
+     * 校验图片权限
+     * @param loginUser
+     * @param picture
+     */
+    void checkPictureAuth(User loginUser, Picture picture);
+
+    /**
+     * 删除图片
+     * @param picture
+     * @param loginUser
+     */
+    void deletePicture(Picture picture, User loginUser);
+
+    /**
+     * 编辑图片
+     * @param pictureEditRequest
+     * @param loginUser
+     */
+    void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
 }
