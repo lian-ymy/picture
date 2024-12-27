@@ -3,6 +3,8 @@ package com.example.picture.controller;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.picture.annotation.AuthCheck;
+import com.example.picture.api.imagesearch.model.ImageSearchResult;
+import com.example.picture.api.imagesearch.sub.ImageSearchApiFacade;
 import com.example.picture.common.BaseResponse;
 import com.example.picture.common.DeleteRequest;
 import com.example.picture.common.ResultUtils;
@@ -171,7 +173,7 @@ public class PictureController {
      */
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<Picture>> listPictureVOByPage(@RequestBody PictureQueryRequest pictureQueryRequest, HttpServletRequest request) {
+    public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryRequest pictureQueryRequest, HttpServletRequest request) {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
@@ -191,7 +193,7 @@ public class PictureController {
         }
         Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
                 pictureService.getQueryWrapper(pictureQueryRequest));
-        return ResultUtils.success(picturePage);
+        return ResultUtils.success(pictureService.getPictureVOPage(picturePage, request));
     }
 
     /**
@@ -306,5 +308,34 @@ public class PictureController {
         User loginUser = userService.getLoginUser(request);
         Integer count = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
         return ResultUtils.success(count);
+    }
+
+    @PostMapping("/search/picture")
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR, "请求参数为空");
+        Long pictureId = searchPictureByPictureRequest.getPictureId();
+        ThrowUtils.throwIf(pictureId == null, ErrorCode.PARAMS_ERROR, "请求参数为空");
+        Picture picture = pictureService.getById(pictureId);
+        ThrowUtils.throwIf(picture == null || picture.getUrl() == null, ErrorCode.PARAMS_ERROR, "图片不存在");
+        List<ImageSearchResult> resultLists = ImageSearchApiFacade.searchImage(picture.getUrl());
+        return ResultUtils.success(resultLists);
+    }
+
+    @PostMapping("/search/color")
+    public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorRequest searchPictureByColorRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(searchPictureByColorRequest == null, ErrorCode.PARAMS_ERROR, "请求参数为空");
+        String picColor = searchPictureByColorRequest.getPicColor();
+        Long spaceId = searchPictureByColorRequest.getSpaceId();
+        User loginUser = userService.getLoginUser(request);
+        List<PictureVO> pictureVOList = pictureService.searchPictureByColor(spaceId, picColor, loginUser);
+        return ResultUtils.success(pictureVOList);
+    }
+
+    @PostMapping("/edit/batch")
+    public BaseResponse<Boolean> editPictureBatch(@RequestBody PictureEditByBatchRequest pictureEditByBatchRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureEditByBatchRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        pictureService.editPictureByBatch(pictureEditByBatchRequest, loginUser);
+        return ResultUtils.success(true);
     }
 }

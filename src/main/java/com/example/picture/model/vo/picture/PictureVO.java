@@ -103,6 +103,16 @@ public class PictureVO implements Serializable {
      */
     private UserVO userVO;
 
+    /**
+     * 图片颜色
+     */
+    private String picColor;
+
+    /**
+     * 缩略图地址
+     */
+    private String thumbnailUrl;
+
     public static Picture voToEntity(PictureVO pictureVO) {
         if (pictureVO == null) {
             return null;

@@ -7,7 +7,7 @@ create table picture
     userId       bigint                              null comment '关联的用户id',
     name         varchar(256)                        null comment '图片名称',
     introduction  varchar(512)                        null comment '图片描述',
-    category     int                                 null comment '图片分类',
+    category     varchar(512)                        null comment '图片分类',
     tags         varchar(256)                        null comment '图片标签',
     picSize      bigint                              null comment '图片大小',
     picWidth     int       default 0                 null comment '图片宽度',
@@ -41,3 +41,5 @@ alter table picture
     add column spaceId bigint null comment "空间id(为空表示公共空间)";
 
 create index idx_spaceId on picture(spaceId);
+
+alter table picture add column picColor varchar(16) null comment "图片颜色";

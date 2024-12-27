@@ -28,6 +28,7 @@
             <result property="reviewMessage" column="reviewMessage" jdbcType="VARCHAR"/>
             <result property="thumbnailUrl" column="thumbnailUrl" jdbcType="VARCHAR"/>
             <result property="spaceId" column="spaceId" jdbcType="BIGINT"/>
+            <result property="picColor" column="picColor" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
@@ -38,6 +39,6 @@
         editTime,createTime,updateTime,
         isDelete,isPublic,reviewStatus,
         reviewTime,reviewUserId,reviewMessage,
-        thumbnailUrl,spaceId
+        thumbnailUrl,spaceId,picColor
     </sql>
 </mapper>

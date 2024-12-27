@@ -9,6 +9,7 @@ import com.example.picture.model.dto.picture.*;
 import com.example.picture.model.vo.picture.PictureVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author lian
@@ -104,4 +105,28 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      */
     void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
+
+    /**
+     * 根据指定颜色在当前空间中搜索图片
+     * @param spaceId
+     * @param picColor
+     * @param loginUser
+     * @return
+     */
+    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
+
+    /**
+     * 批量编辑图片
+     * @param pictureEditByBatchRequest
+     * @param loginUser
+     */
+    void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+
+    /**
+     * 批量编辑图片元数据
+     * @param pictureEditByBatchRequest
+     * @param spaceId
+     * @param userId
+     */
+    void batchEditPictureMetadata(PictureEditByBatchRequest pictureEditByBatchRequest, Long spaceId, Long userId);
 }

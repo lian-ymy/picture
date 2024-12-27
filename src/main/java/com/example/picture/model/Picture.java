@@ -42,7 +42,7 @@ public class Picture implements Serializable {
     /**
      * 图片分类
      */
-    private Integer category;
+    private String category;
 
     /**
      * 图片标签
@@ -124,6 +124,11 @@ public class Picture implements Serializable {
      * 缩略图地址
      */
     private String thumbnailUrl;
+
+    /**
+     * 图片颜色
+     */
+    private String picColor;
 
     /**
      * 空间id
