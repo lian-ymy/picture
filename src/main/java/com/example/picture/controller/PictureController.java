@@ -3,6 +3,8 @@ package com.example.picture.controller;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.picture.annotation.AuthCheck;
+import com.example.picture.api.aliyunai.AliYunAiApi;
+import com.example.picture.api.aliyunai.model.*;
 import com.example.picture.api.imagesearch.model.ImageSearchResult;
 import com.example.picture.api.imagesearch.sub.ImageSearchApiFacade;
 import com.example.picture.common.BaseResponse;
@@ -18,6 +20,7 @@ import com.example.picture.model.Space;
 import com.example.picture.model.User;
 import com.example.picture.model.dto.picture.*;
 import com.example.picture.model.enums.PictureReviewStatusEnum;
+import com.example.picture.model.vo.picture.PictureTextVO;
 import com.example.picture.model.vo.picture.PictureVO;
 import com.example.picture.service.PictureService;
 import com.example.picture.service.SpaceService;
@@ -37,6 +40,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -58,6 +62,9 @@ public class PictureController {
 
     @Resource
     private SpaceService spaceService;
+
+    @Resource
+    private AliYunAiApi aliYunAiApi;
 
     //构造本地缓存，设置缓存容量和过期时间
     private final Cache<String, String> LOCAL_CACHE =
@@ -338,4 +345,79 @@ public class PictureController {
         pictureService.editPictureByBatch(pictureEditByBatchRequest, loginUser);
         return ResultUtils.success(true);
     }
+
+    /**
+     * 创建图片的AI扩图任务
+     * @param taskRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/out_painting/create_task")
+    public BaseResponse<CreateOutPaintingTaskResponse> createOutPaintingTask(@RequestBody CreatePictureOutPaintingTaskRequest taskRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(taskRequest == null || taskRequest.getPictureId() == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        CreateOutPaintingTaskResponse taskResponse = pictureService.createOutPaintingTask(taskRequest, loginUser);
+        return ResultUtils.success(taskResponse);
+    }
+
+    /**
+     * 获取图片的AI扩图任务
+     * @param taskId
+     * @return
+     */
+    @GetMapping("/out_painting/get_task")
+    public BaseResponse<GetOutPaintingTaskResponse> getOutPaintingTask(@RequestParam String taskId) {
+        ThrowUtils.throwIf(taskId == null, ErrorCode.PARAMS_ERROR);
+        GetOutPaintingTaskResponse outPaintingTask = aliYunAiApi.getOutPaintingTask(taskId);
+        return ResultUtils.success(outPaintingTask);
+    }
+
+    /**
+     * 创建图片的文本图片任务
+     * @param taskRequest
+     * @return
+     */
+    @PostMapping("/text_picture/create_task")
+    public BaseResponse<PictureByTextTaskResponse> createTextPictureTask(@RequestBody CreatePictureByTextTaskRequest taskRequest) {
+        ThrowUtils.throwIf(taskRequest == null, ErrorCode.PARAMS_ERROR);
+        //构造请求参数
+        PictureByTextTaskRequest pictureByTextTaskRequest = new PictureByTextTaskRequest();
+        BeanUtils.copyProperties(taskRequest, pictureByTextTaskRequest);
+        //调用AI服务
+        PictureByTextTaskResponse response = aliYunAiApi.createPictureByTextTask(pictureByTextTaskRequest);
+        //返回结果
+        return ResultUtils.success(response);
+    }
+
+    /**
+     * 获取图片的文本图片任务
+     * @param taskId
+     * @return
+     */
+    @GetMapping("/text_picture/get_task")
+    public BaseResponse<PictureTextVO> getTextPictureTask(@RequestParam String taskId) {
+        ThrowUtils.throwIf(taskId == null, ErrorCode.PARAMS_ERROR);
+        GetPictureByTextTaskResponse textTask = aliYunAiApi.getPictureByTextTask(taskId);
+        Map<String, String> url = textTask.getOutput().getResults().get(0);
+        String taskStatus = textTask.getOutput().getTaskStatus();
+        String code = textTask.getOutput().getCode();
+        String message = textTask.getOutput().getMessage();
+        List<Map<String, String>> results = textTask.getOutput().getResults();
+        GetPictureByTextTaskResponse.TaskMetrics taskMetrics = textTask.getOutput().getTaskMetrics();
+
+        PictureTextVO pictureTextVO = new PictureTextVO();
+        PictureTextVO.Output output = new PictureTextVO.Output();
+        output.setUrl(url.get("url"));
+        output.setTaskId(taskId);
+        output.setTaskStatus(taskStatus);
+        output.setCode(code);
+        output.setMessage(message);
+        output.setTaskMetrics(taskMetrics);
+        pictureTextVO.setOutput(output);
+        BeanUtils.copyProperties(textTask, pictureTextVO);
+        System.out.println(pictureTextVO);
+        return ResultUtils.success(pictureTextVO);
+    }
+
+
 }

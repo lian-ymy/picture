@@ -77,11 +77,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     @Override
     public void fillSpaceBySpaceLevel(Space space) {
         ThrowUtils.throwIf(space == null, ErrorCode.PARAMS_ERROR);
-        Integer spaceType = space.getSpaceType();
-        if (spaceType == null) {
+        Integer spaceLevel = space.getSpaceLevel();
+        if (spaceLevel == null) {
             return;
         }
-        SpaceLevelEnum spaceLevelByValue = SpaceLevelEnum.getSpaceLevelByValue(spaceType);
+        SpaceLevelEnum spaceLevelByValue = SpaceLevelEnum.getSpaceLevelByValue(spaceLevel);
         if (spaceLevelByValue != null) {
             if (space.getMaxCount() == null) {
                 space.setMaxCount(spaceLevelByValue.getMaxCount());

@@ -7,6 +7,11 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.picture.api.aliyunai.AliYunAiApi;
+import com.example.picture.api.aliyunai.model.CreateOutPaintingTaskRequest;
+import com.example.picture.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.example.picture.api.aliyunai.model.PictureByTextTaskRequest;
+import com.example.picture.api.aliyunai.model.PictureByTextTaskResponse;
 import com.example.picture.exception.BussinessException;
 import com.example.picture.exception.ErrorCode;
 import com.example.picture.exception.ThrowUtils;
@@ -73,6 +78,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     @Resource
     private TransactionTemplate transactionTemplate;
+
+    @Resource
+    private AliYunAiApi aliYunAiApi;
 
     private ThreadPoolExecutor threadPoolExecutor;
 
@@ -614,6 +622,25 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
         //等待所有结束完成
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).join();
+    }
+
+    @Override
+    public CreateOutPaintingTaskResponse createOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest,User loginUser) {
+        //获取图片信息
+        Long pictureId = createPictureOutPaintingTaskRequest.getPictureId();
+        Picture picture = Optional.ofNullable(this.getById(pictureId)).orElseThrow(() -> new BussinessException(ErrorCode.NOT_FOUND_ERROR));
+        //权限校验
+        checkPictureAuth(loginUser, picture);
+        //构造请求参数
+        CreateOutPaintingTaskRequest taskRequest = new CreateOutPaintingTaskRequest();
+        CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input();
+        input.setImageUrl(picture.getUrl());
+        taskRequest.setInput(input);
+        BeanUtils.copyProperties(createPictureOutPaintingTaskRequest, taskRequest);
+        //调用AI服务
+        CreateOutPaintingTaskResponse response = aliYunAiApi.createOutPaintingTask(taskRequest);
+        //返回结果
+        return response;
     }
 
 
